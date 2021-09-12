@@ -50,8 +50,8 @@ export async function setupDatGui(urlParams) {
   // The model folder contains options for model selection.
   const modelFolder = gui.addFolder('Model');
 
-  const model = urlParams.get('model');
-  let type = urlParams.get('type');
+  const model = urlParams.get('model') || 'movenet';
+  let type = urlParams.get('type') || 'multipose';
 
   switch (model) {
     case 'posenet':
@@ -72,7 +72,7 @@ export async function setupDatGui(urlParams) {
       }
       break;
     default:
-      alert(`${urlParams.get('model')}`);
+      alert(`asfdsafdsa ${urlParams.get('model')}`);
       break;
   }
 

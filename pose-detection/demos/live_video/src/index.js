@@ -188,10 +188,10 @@ async function renderPrediction() {
 async function app() {
   // Gui content will change depending on which model is in the query string.
   const urlParams = new URLSearchParams(window.location.search);
-  if (!urlParams.has('model')) {
-    alert('Cannot find model in the query string.');
-    return;
-  }
+  // if (!urlParams.has('model')) {
+  //   alert('Cannot find model in the query string.');
+  //   return;
+  // }
 
   await setupDatGui(urlParams);
 
