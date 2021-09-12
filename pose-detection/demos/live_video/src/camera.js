@@ -142,9 +142,25 @@ export class Camera {
    * @param poses A list of poses to render.
    */
   drawResults(poses) {
+    let allGoodPoints = [];
     for (const pose of poses) {
-      this.drawResult(pose);
+      // this.drawResult(pose);
+      allGoodPoints = allGoodPoints.concat(
+        pose.keypoints.filter((p) => p.score > params.STATE.modelConfig.scoreThreshold));
     }
+
+    this.ctx.strokeStyle = 'White';
+    this.ctx.lineWidth = params.DEFAULT_LINE_WIDTH;
+
+    for (const p1 of allGoodPoints) {
+      for (const p2 of allGoodPoints) {
+        this.ctx.beginPath();
+        this.ctx.moveTo(p1.x, p1.y);
+        this.ctx.lineTo(p2.x, p2.y);
+        this.ctx.stroke();
+      }
+    }
+
   }
 
   /**
@@ -158,7 +174,7 @@ export class Camera {
     }
     if (pose.keypoints3D != null && params.STATE.modelConfig.render3D) {
       this.drawKeypoints3D(pose.keypoints3D);
-    }
+    }    
   }
 
   /**
