@@ -153,11 +153,15 @@ export class Camera {
         points.filter((p) => p.score > params.STATE.modelConfig.scoreThreshold));
     }
 
-    this.ctx.strokeStyle = 'White';
     this.ctx.lineWidth = params.DEFAULT_LINE_WIDTH;
 
+    let c = 0;
+    const total = allGoodPoints.length * allGoodPoints.length;
     for (const p1 of allGoodPoints) {
       for (const p2 of allGoodPoints) {
+        c++;
+        const frac = c / total;
+        this.ctx.strokeStyle = `rgba(255, ${(1 - frac) * 255}, 0, ${((c % 5) / 5) - 0.5})`;
         this.ctx.beginPath();
         this.ctx.moveTo(p1.x, p1.y);
         this.ctx.lineTo(p2.x, p2.y);
