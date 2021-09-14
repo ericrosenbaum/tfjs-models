@@ -142,11 +142,15 @@ export class Camera {
    * @param poses A list of poses to render.
    */
   drawResults(poses) {
+    // const excludedParts = ['left_eye', 'right_eye', 'left_ear', 'right_ear'];
+    const excludedParts = ['nose', 'left_eye', 'right_eye'];
     let allGoodPoints = [];
     for (const pose of poses) {
       // this.drawResult(pose);
+      // exclude some points we don't want
+      const points = pose.keypoints.filter((p) => !excludedParts.includes(p.name));
       allGoodPoints = allGoodPoints.concat(
-        pose.keypoints.filter((p) => p.score > params.STATE.modelConfig.scoreThreshold));
+        points.filter((p) => p.score > params.STATE.modelConfig.scoreThreshold));
     }
 
     this.ctx.strokeStyle = 'White';
