@@ -61,6 +61,53 @@ export class Camera {
       'styles': {polyline: {defaultOpacity: 1, deselectedOpacity: 1}}
     });
     this.scatterGLHasInitialized = false;
+
+    this.partsInUse = [
+      'right_ear',
+      'right_wrist',
+      'right_knee',
+      'left_knee',
+      'left_wrist',
+      'left_ear',
+    ];
+    this.numOpaque = 6;
+    this.numTranslucent = 6;
+    
+    this.setupAllPairs();
+    
+    // window.setInterval(() => {
+    //   this.setupAllPairs();
+    // }, 10 * 1000);
+    window.document.onkeydown = this.setupAllPairs.bind(this);
+  }
+
+  setupAllPairs() {
+    const numParts = this.partsInUse.length;
+    const allPairs = [];
+    for (let i=0; i<numParts; i++) {
+      for (let j=0; j<numParts; j++) {
+        allPairs.push([i, j]);
+      }
+    }
+    this.allPairs = this.shuffle(allPairs);
+    this.opaquePairs = this.allPairs.slice(0, this.numOpaque);
+    this.translucentPairs = this.allPairs.slice(this.numOpaque, this.numOpaque + this.numTranslucent);
+    console.log(this.opaquePairs);
+  }
+
+  shuffle(array) {
+    let currentIndex = array.length;
+    let randomIndex;
+    // While there remain elements to shuffle...
+    while (currentIndex != 0) {
+      // Pick a remaining element...
+      randomIndex = Math.floor(Math.random() * currentIndex);
+      currentIndex--;
+      // And swap it with the current element.
+      [array[currentIndex], array[randomIndex]] = [
+        array[randomIndex], array[currentIndex]];
+    }
+    return array;
   }
 
   /**
@@ -142,33 +189,37 @@ export class Camera {
    * @param poses A list of poses to render.
    */
   drawResults(poses) {
-    // const excludedParts = ['left_eye', 'right_eye', 'left_ear', 'right_ear'];
-    const excludedParts = ['nose', 'left_eye', 'right_eye'];
-    let allGoodPoints = [];
     for (const pose of poses) {
-      // this.drawResult(pose);
       // exclude some points we don't want
-      const points = pose.keypoints.filter((p) => !excludedParts.includes(p.name));
-      allGoodPoints = allGoodPoints.concat(
-        points.filter((p) => p.score > params.STATE.modelConfig.scoreThreshold));
+      pose.partPoints = pose.keypoints.filter((p) => this.partsInUse.includes(p.name));
+      // allGoodPoints = allGoodPoints.concat(
+      //   points.filter((p) => p.score > params.STATE.modelConfig.scoreThreshold));
     }
 
-    this.ctx.lineWidth = params.DEFAULT_LINE_WIDTH;
+    this.drawPairs(poses, this.opaquePairs, true);
+    this.drawPairs(poses, this.translucentPairs, false);
+  }
 
-    let c = 0;
-    const total = allGoodPoints.length * allGoodPoints.length;
-    for (const p1 of allGoodPoints) {
-      for (const p2 of allGoodPoints) {
+  drawPairs(poses, pairList, opaque) {
+    if (poses.length === 2) {
+      let c = 0;
+      for (const pair of pairList) {
+        const p1 = poses[0].partPoints[pair[0]];
+        const p2 = poses[1].partPoints[pair[1]];
+        if (p1.score < params.STATE.modelConfig.scoreThreshold) continue;
+        if (p2.score < params.STATE.modelConfig.scoreThreshold) continue;
+        this.ctx.lineWidth = 4;
         c++;
-        const frac = c / total;
-        this.ctx.strokeStyle = `rgba(255, ${(1 - frac) * 255}, 0, ${((c % 5) / 5) - 0.5})`;
+        const frac = c / pairList.length;
+        const hue = frac * 25;
+        const alpha = opaque ? 0.9 : 0.25;
+        this.ctx.strokeStyle = `hsla(${hue}, 100%, 50%, ${alpha})`;
         this.ctx.beginPath();
         this.ctx.moveTo(p1.x, p1.y);
         this.ctx.lineTo(p2.x, p2.y);
         this.ctx.stroke();
       }
     }
-
   }
 
   /**
