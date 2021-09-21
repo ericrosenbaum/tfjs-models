@@ -76,7 +76,16 @@ export class Camera {
     // window.setInterval(() => {
     //   this.setupAllPairs();
     // }, 10 * 1000);
-    window.document.onkeydown = this.setupAllPairs.bind(this);
+
+    window.document.onkeydown = (e) => {
+      if (e.key === 'f') {
+        this.canvas.requestFullscreen();
+        document.body.style.cursor = 'none';
+      }
+      if (e.key === ' ') {
+        this.setupAllPairs();
+      }
+    };
   }
 
   setupAllPairs() {
@@ -176,8 +185,10 @@ export class Camera {
   }
 
   drawCtx() {
+    this.ctx.filter = 'grayscale(100%)'
     this.ctx.drawImage(
         this.video, 0, 0, this.video.videoWidth, this.video.videoHeight);
+    this.ctx.filter = 'none';
   }
 
   clearCtx() {
@@ -196,30 +207,33 @@ export class Camera {
       //   points.filter((p) => p.score > params.STATE.modelConfig.scoreThreshold));
     }
 
-    this.drawPairs(poses, this.opaquePairs, true);
-    this.drawPairs(poses, this.translucentPairs, false);
+    if (poses.length === 2) {
+      this.drawPairs(poses, this.opaquePairs, true);
+      this.drawPairs(poses, this.translucentPairs, false);
+      return;
+    }
+
+    this.drawResult(poses[0]);
   }
 
   drawPairs(poses, pairList, opaque) {
-    if (poses.length === 2) {
-      let c = 0;
-      for (const pair of pairList) {
-        const p1 = poses[0].partPoints[pair[0]];
-        const p2 = poses[1].partPoints[pair[1]];
-        if (p1.score < params.STATE.modelConfig.scoreThreshold) continue;
-        if (p2.score < params.STATE.modelConfig.scoreThreshold) continue;
-        this.ctx.lineWidth = 4;
-        c++;
-        const frac = c / pairList.length;
-        const hue = frac * 25;
-        const alpha = opaque ? 0.9 : 0.25;
-        this.ctx.strokeStyle = `hsla(${hue}, 100%, 50%, ${alpha})`;
-        this.ctx.beginPath();
-        this.ctx.moveTo(p1.x, p1.y);
-        this.ctx.lineTo(p2.x, p2.y);
-        this.ctx.stroke();
-      }
-    }
+    let c = 0;
+    for (const pair of pairList) {
+      const p1 = poses[0].partPoints[pair[0]];
+      const p2 = poses[1].partPoints[pair[1]];
+      if (p1.score < params.STATE.modelConfig.scoreThreshold) continue;
+      if (p2.score < params.STATE.modelConfig.scoreThreshold) continue;
+      this.ctx.lineWidth = 4;
+      c++;
+      const frac = c / pairList.length;
+      const hue = 335 + frac * 25;
+      const alpha = opaque ? 0.9 : 0.25;
+      this.ctx.strokeStyle = `hsla(${hue}, 100%, 50%, ${alpha})`;
+      this.ctx.beginPath();
+      this.ctx.moveTo(p1.x, p1.y);
+      this.ctx.lineTo(p2.x, p2.y);
+      this.ctx.stroke();
+    } 
   }
 
   /**
