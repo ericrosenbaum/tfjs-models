@@ -63,12 +63,10 @@ export class Camera {
     this.scatterGLHasInitialized = false;
 
     this.partsInUse = [
-      'right_ear',
       'right_wrist',
       'right_knee',
       'left_knee',
       'left_wrist',
-      'left_ear',
     ];
     this.numOpaque = 6;
     this.numTranslucent = 6;
