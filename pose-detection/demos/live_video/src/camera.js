@@ -82,6 +82,8 @@ export class Camera {
   }
 
   setupAllPairs() {
+    this.numOpaque = params.STATE.render.numOpaque;
+    this.numTranslucent = params.STATE.render.numTranslucent;
     const numParts = this.partsInUse.length;
     const allPairs = [];
     for (let i=0; i<numParts; i++) {

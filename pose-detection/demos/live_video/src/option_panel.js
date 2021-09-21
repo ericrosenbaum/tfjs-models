@@ -45,7 +45,7 @@ export async function setupDatGui(urlParams) {
   sizeController.onChange(_ => {
     params.STATE.isSizeOptionChanged = true;
   });
-  cameraFolder.open();
+  // cameraFolder.open();
 
   // The model folder contains options for model selection.
   const modelFolder = gui.addFolder('Model');
@@ -87,13 +87,18 @@ export async function setupDatGui(urlParams) {
 
   showModelConfigs(modelFolder, type);
 
-  modelFolder.open();
+  // modelFolder.open();
 
   const backendFolder = gui.addFolder('Backend');
 
   showBackendConfigs(backendFolder);
 
-  backendFolder.open();
+  // backendFolder.open();
+
+  const renderFolder = gui.addFolder('Render');
+  const numOpaqueController = renderFolder.add(params.STATE.render, 'numOpaque', 6);
+  const numTranslucentController = renderFolder.add(params.STATE.render, 'numTranslucent', 6);
+  renderFolder.open();
 
   return gui;
 }
