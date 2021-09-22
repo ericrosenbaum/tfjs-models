@@ -30,7 +30,7 @@ export const STATE = {
   backend: '',
   flags: {},
   modelConfig: {},
-  render: {numOpaque: 6, numTranslucent: 6},
+  render: {numOpaque: 4, numTranslucent: 3},
 };
 export const BLAZEPOSE_CONFIG = {
   maxPoses: 1,

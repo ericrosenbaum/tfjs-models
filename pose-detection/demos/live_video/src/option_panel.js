@@ -96,8 +96,14 @@ export async function setupDatGui(urlParams) {
   // backendFolder.open();
 
   const renderFolder = gui.addFolder('Render');
-  const numOpaqueController = renderFolder.add(params.STATE.render, 'numOpaque', 6);
-  const numTranslucentController = renderFolder.add(params.STATE.render, 'numTranslucent', 6);
+  const numOpaqueController = renderFolder.add(params.STATE.render, 'numOpaque');
+  numOpaqueController.onChange(_ => {
+    params.STATE.isPairsOptionChanged = true;
+  });
+  const numTranslucentController = renderFolder.add(params.STATE.render, 'numTranslucent');
+  numTranslucentController.onChange(_ => {
+    params.STATE.isPairsOptionChanged = true;
+  });
   renderFolder.open();
 
   return gui;

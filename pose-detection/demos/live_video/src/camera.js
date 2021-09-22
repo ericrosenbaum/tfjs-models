@@ -68,8 +68,6 @@ export class Camera {
       'left_knee',
       'left_wrist',
     ];
-    this.numOpaque = 6;
-    this.numTranslucent = 6;
     
     this.setupAllPairs();
     
@@ -185,7 +183,7 @@ export class Camera {
   }
 
   drawCtx() {
-    this.ctx.filter = 'grayscale(100%)'
+    this.ctx.filter = 'grayscale(100%)';
     this.ctx.drawImage(
         this.video, 0, 0, this.video.videoWidth, this.video.videoHeight);
     this.ctx.filter = 'none';
@@ -207,26 +205,36 @@ export class Camera {
       //   points.filter((p) => p.score > params.STATE.modelConfig.scoreThreshold));
     }
 
-    if (poses.length === 2) {
-      this.drawPairs(poses, this.opaquePairs, true);
-      this.drawPairs(poses, this.translucentPairs, false);
-      return;
-    }
+    this.drawAll(poses, this.opaquePairs, true);
+    this.drawAll(poses, this.translucentPairs, false);
 
-    this.drawResult(poses[0]);
+    if (poses.length === 1) {
+      this.drawResult(poses[0]);
+    }
   }
 
-  drawPairs(poses, pairList, opaque) {
+  drawAll(poses, pairList, opaque) {
+    if (params.STATE.isPairsOptionChanged) {
+      params.STATE.isPairsOptionChanged = false;
+      this.setupAllPairs();
+    }
+    if (poses.length < 2) return;
+    for (let i=0; i<poses.length-1; i++) {
+      this.drawPair(poses[i], poses[i+1], pairList, opaque);
+    }
+  }
+
+  drawPair(pose1, pose2, pairList, opaque) {
     let c = 0;
     for (const pair of pairList) {
-      const p1 = poses[0].partPoints[pair[0]];
-      const p2 = poses[1].partPoints[pair[1]];
+      const p1 = pose1.partPoints[pair[0]];
+      const p2 = pose2.partPoints[pair[1]];
       if (p1.score < params.STATE.modelConfig.scoreThreshold) continue;
       if (p2.score < params.STATE.modelConfig.scoreThreshold) continue;
       this.ctx.lineWidth = 4;
       c++;
       const frac = c / pairList.length;
-      const hue = 335 + frac * 25;
+      const hue = 0 + frac * 90;
       const alpha = opaque ? 0.9 : 0.25;
       this.ctx.strokeStyle = `hsla(${hue}, 100%, 50%, ${alpha})`;
       this.ctx.beginPath();
