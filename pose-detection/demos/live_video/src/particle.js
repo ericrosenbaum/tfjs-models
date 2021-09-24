@@ -1,3 +1,5 @@
+import * as params from './params';
+
 export class Particle {
     constructor() {
         this.x = 0;
@@ -5,12 +7,13 @@ export class Particle {
         this.frac = 0.2;
         this.stableFrames = 0;
     }
-    preUpdate(part) {
+    update(part) {
+        if (part.score < params.STATE.modelConfig.scoreThreshold) return;
         const xDist = this.x - part.x;
         const yDist = this.y - part.y;
         this.x -= xDist * this.frac;
         this.y -= yDist * this.frac;
-        this.stableFrames += 1;
+        this.stableFrames += 2;
         if (this.stableFrames > 100) {
             this.stableFrames = 100;
         }
@@ -22,10 +25,12 @@ export class Particle {
         ctx.fillStyle = `hsla(300, 100%, 50%, ${alpha})`;
         ctx.fill(circle);
     }
-    postUpdate() {
-        this.stableFrames -= 0.5;
-        if (this.stableFrames < 0) {
-            this.stableFrames = 0;
+    postUpdate(updated) {
+        if (!updated) {
+            this.stableFrames -= 2;
+            if (this.stableFrames < 0) {
+                this.stableFrames = 0;
+            }
         }
     }
 }

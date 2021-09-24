@@ -21,6 +21,7 @@ import * as params from './params';
 import {isMobile} from './util';
 
 import {Particle} from './particle';
+import { groupEnd } from 'console';
 
 // These anchor points allow the pose pointcloud to resize according to its
 // position in the input.
@@ -71,9 +72,14 @@ export class Camera {
       'left_wrist',
     ];
     this.maxPoses = 6;
-    this.particles = [];
-    for (let i=0; i<this.partsInUse.length * this.maxPoses; i++) {
-      this.particles.push(new Particle());
+    this.particleGroups = [];
+    for (let i=0; i<this.maxPoses; i++) {
+      const group = {
+        id: null,
+        updated: false,
+        particles: this.partsInUse.map(() => new Particle()),
+      };
+      this.particleGroups.push(group);
     }
     
     // this.setupAllPairs();
@@ -200,34 +206,71 @@ export class Camera {
     this.ctx.clearRect(0, 0, this.video.videoWidth, this.video.videoHeight);
   }
 
+  updateGroup(group, pose) {
+      for (let i=0; i < group.particles.length; i++) {
+        group.particles[i].update(pose.keypointsInUse[i]);
+    }
+    group.updated = true;
+  }
+
   /**
    * Draw the keypoints and skeleton on the video.
    * @param poses A list of poses to render.
    */
   drawResults(poses) {
-    let c = 0;
+    // update particle groups for existing ids, and set id for new groups if needed
     for (const pose of poses) {
-      pose.partPoints = pose.keypoints.filter((p) => this.partsInUse.includes(p.name));
-      for (const part of pose.partPoints) {
-        if (part.score > params.STATE.modelConfig.scoreThreshold) {
-          this.particles[c].preUpdate(part);
+      pose.keypointsInUse = pose.keypoints.filter((p) => this.partsInUse.includes(p.name));
+      const matchingGroup = this.particleGroups.find((group) => group.id === pose.id);
+      if (matchingGroup) {
+        this.updateGroup(matchingGroup, pose);
+      } else {
+        const nullGroup = this.particleGroups.find((group) => group.id === null);
+        if (nullGroup) {
+          nullGroup.id = pose.id;
+          this.updateGroup(nullGroup, pose);
         }
-        c++;
       }
     }
-    for (const particle of this.particles) {
-      particle.draw(this.ctx);
-      particle.postUpdate();
+
+    // all particles in all groups do a postupdate
+    for (const group of this.particleGroups) {
+      for (const particle of group.particles) {
+        particle.postUpdate(group.updated);
+      }
     }
-    for (const p1 of this.particles) {
-      for (const p2 of this.particles) {
-        const alpha = Math.min(p1.stableFrames, p2.stableFrames) / 100;
-        if (alpha > 0) {
-          this.ctx.strokeStyle = `hsla(300, 100%, 50%, ${alpha})`;
-          this.ctx.beginPath();
-          this.ctx.moveTo(p1.x, p1.y);
-          this.ctx.lineTo(p2.x, p2.y);
-          this.ctx.stroke();
+
+    // if a group has an id but has not been updated, clear its id
+    for (const group of this.particleGroups) {
+      if (group.id !== null) {
+        if (group.updated === false) {
+          group.id = null;
+        }
+      }
+      group.updated = false;
+    }
+    
+    // sort left to right
+    this.particleGroups.sort((first, second) => {
+      return first.particles[0].x - second.particles[0].x;
+    });
+
+    // draw
+    let count = 0;
+    for (let i=0; i<this.particleGroups.length - 1; i++) {
+      for (const p1 of this.particleGroups[i].particles) {
+        for (const p2 of this.particleGroups[i+1].particles) {
+          const alpha = Math.min(p1.stableFrames, p2.stableFrames) / 100;
+          if (alpha > 0) {
+            count++;
+            const hue = i * 30 + count;
+            this.ctx.lineWidth = 4;
+            this.ctx.strokeStyle = `hsla(${hue}, 100%, 50%, ${alpha})`;
+            this.ctx.beginPath();
+            this.ctx.moveTo(p1.x, p1.y);
+            this.ctx.lineTo(p2.x, p2.y);
+            this.ctx.stroke();
+          }
         }
       }
     }
