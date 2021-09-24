@@ -20,6 +20,8 @@ import * as scatter from 'scatter-gl';
 import * as params from './params';
 import {isMobile} from './util';
 
+import {Particle} from './particle';
+
 // These anchor points allow the pose pointcloud to resize according to its
 // position in the input.
 const ANCHOR_POINTS = [[0, 0, 0], [0, 1, 0], [-1, 0, 0], [-1, -1, 0]];
@@ -68,8 +70,13 @@ export class Camera {
       'left_knee',
       'left_wrist',
     ];
+    this.maxPoses = 6;
+    this.particles = [];
+    for (let i=0; i<this.partsInUse.length * this.maxPoses; i++) {
+      this.particles.push(new Particle());
+    }
     
-    this.setupAllPairs();
+    // this.setupAllPairs();
     
     // window.setInterval(() => {
     //   this.setupAllPairs();
@@ -80,9 +87,9 @@ export class Camera {
         this.canvas.requestFullscreen();
         document.body.style.cursor = 'none';
       }
-      if (e.key === ' ') {
-        this.setupAllPairs();
-      }
+      // if (e.key === ' ') {
+      //   this.setupAllPairs();
+      // }
     };
   }
 
@@ -198,18 +205,31 @@ export class Camera {
    * @param poses A list of poses to render.
    */
   drawResults(poses) {
+    let c = 0;
     for (const pose of poses) {
-      // exclude some points we don't want
       pose.partPoints = pose.keypoints.filter((p) => this.partsInUse.includes(p.name));
-      // allGoodPoints = allGoodPoints.concat(
-      //   points.filter((p) => p.score > params.STATE.modelConfig.scoreThreshold));
+      for (const part of pose.partPoints) {
+        if (part.score > params.STATE.modelConfig.scoreThreshold) {
+          this.particles[c].preUpdate(part);
+        }
+        c++;
+      }
     }
-
-    this.drawAll(poses, this.opaquePairs, true);
-    this.drawAll(poses, this.translucentPairs, false);
-
-    if (poses.length === 1) {
-      this.drawResult(poses[0]);
+    for (const particle of this.particles) {
+      particle.draw(this.ctx);
+      particle.postUpdate();
+    }
+    for (const p1 of this.particles) {
+      for (const p2 of this.particles) {
+        const alpha = Math.min(p1.stableFrames, p2.stableFrames) / 100;
+        if (alpha > 0) {
+          this.ctx.strokeStyle = `hsla(300, 100%, 50%, ${alpha})`;
+          this.ctx.beginPath();
+          this.ctx.moveTo(p1.x, p1.y);
+          this.ctx.lineTo(p2.x, p2.y);
+          this.ctx.stroke();
+        }
+      }
     }
   }
 
