@@ -294,6 +294,25 @@ export class Camera {
         }
       }
     }
+
+    this.drawTitle();
+  }
+
+  drawTitle() {
+    this.ctx.save();
+    this.ctx.translate(this.ctx.canvas.width, 0);
+    this.ctx.scale(-1, 1);
+    this.ctx.fillStyle = 'white';
+    let f = 32;
+    let h = f;
+    let x = 10;
+    this.ctx.font = `${f}px sans`;
+    this.ctx.fillText('TOGETHER APART', x, h);
+    f = 20;
+    this.ctx.font = `${f}px sans`;
+    this.ctx.fillText('Catherine Siller', x, h + f);
+    this.ctx.fillText('Eric Rosenbaum', x, h + f + f);
+    this.ctx.restore();
   }
 
   getPartsInUse() {
