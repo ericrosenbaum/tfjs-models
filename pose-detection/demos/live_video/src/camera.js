@@ -245,17 +245,22 @@ export class Camera {
       group.updated = false;
     }
 
+    // make a filtered list of particle groups that have ids set
+    this.particleGroupsToDraw = this.particleGroups.filter(
+      (group) => group.id !== null
+    );
+
     // sort left to right
-    this.particleGroups.sort((first, second) => {
+    this.particleGroupsToDraw.sort((first, second) => {
       return first.particles[0].x - second.particles[0].x;
     });
 
     // draw
     let count = 0;
 
-    if (poses.length === 1) {
-      for (const p1 of this.particleGroups[0].particles) {
-        for (const p2 of this.particleGroups[0].particles) {
+    if (this.particleGroupsToDraw.length === 1) {
+      for (const p1 of this.particleGroupsToDraw[0].particles) {
+        for (const p2 of this.particleGroupsToDraw[0].particles) {
           let alpha = Math.min(p1.stableFrames, p2.stableFrames) / 100;
           alpha *= this.pseudoRand[count];
           if (alpha > 0) {
@@ -271,9 +276,9 @@ export class Camera {
         }
       }
     }
-    for (let i=0; i<this.particleGroups.length - 1; i++) {
-      for (const p1 of this.particleGroups[i].particles) {
-        for (const p2 of this.particleGroups[i+1].particles) {
+    for (let i=0; i<this.particleGroupsToDraw.length - 1; i++) {
+      for (const p1 of this.particleGroupsToDraw[i].particles) {
+        for (const p2 of this.particleGroupsToDraw[i+1].particles) {
           let alpha = Math.min(p1.stableFrames, p2.stableFrames) / 100;
           alpha *= this.pseudoRand[count];
           if (alpha > 0) {
