@@ -192,7 +192,7 @@ export class Camera {
   }
 
   drawCtx() {
-    // this.ctx.filter = 'grayscale(100%)';
+    this.ctx.filter = 'grayscale(100%)';
     this.ctx.drawImage(
         this.video, 0, 0, this.video.videoWidth, this.video.videoHeight);
     this.ctx.filter = 'none';
