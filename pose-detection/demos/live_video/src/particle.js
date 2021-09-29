@@ -4,7 +4,7 @@ export class Particle {
     constructor() {
         this.x = 0;
         this.y = 0;
-        this.frac = 0.2;
+        this.frac = 0.75;
         this.stableFrames = 0;
     }
     update(part) {

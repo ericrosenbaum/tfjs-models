@@ -65,22 +65,18 @@ export class Camera {
     });
     this.scatterGLHasInitialized = false;
 
-    this.partsInUse = [
-      'right_wrist',
-      'right_knee',
-      'left_knee',
-      'left_wrist',
-    ];
     this.maxPoses = 6;
     this.particleGroups = [];
     for (let i=0; i<this.maxPoses; i++) {
       const group = {
         id: null,
         updated: false,
-        particles: this.partsInUse.map(() => new Particle()),
+        particles: Array.from({length: 14}, () => new Particle()),
       };
       this.particleGroups.push(group);
     }
+
+    this.pseudoRand = Array.from({length: 100}, () => Math.random());
     
     // this.setupAllPairs();
     
@@ -196,7 +192,7 @@ export class Camera {
   }
 
   drawCtx() {
-    this.ctx.filter = 'grayscale(100%)';
+    // this.ctx.filter = 'grayscale(100%)';
     this.ctx.drawImage(
         this.video, 0, 0, this.video.videoWidth, this.video.videoHeight);
     this.ctx.filter = 'none';
@@ -207,7 +203,7 @@ export class Camera {
   }
 
   updateGroup(group, pose) {
-      for (let i=0; i < group.particles.length; i++) {
+      for (let i=0; i < pose.keypointsInUse.length; i++) {
         group.particles[i].update(pose.keypointsInUse[i]);
     }
     group.updated = true;
@@ -218,9 +214,10 @@ export class Camera {
    * @param poses A list of poses to render.
    */
   drawResults(poses) {
+    const partsInUse = this.getPartsInUse();
     // update particle groups for existing ids, and set id for new groups if needed
     for (const pose of poses) {
-      pose.keypointsInUse = pose.keypoints.filter((p) => this.partsInUse.includes(p.name));
+      pose.keypointsInUse = pose.keypoints.filter((p) => partsInUse.includes(p.name));
       const matchingGroup = this.particleGroups.find((group) => group.id === pose.id);
       if (matchingGroup) {
         this.updateGroup(matchingGroup, pose);
@@ -242,14 +239,12 @@ export class Camera {
 
     // if a group has an id but has not been updated, clear its id
     for (const group of this.particleGroups) {
-      if (group.id !== null) {
-        if (group.updated === false) {
-          group.id = null;
-        }
+      if ((group.id !== null) && (group.updated === false)) {
+        group.id = null;
       }
       group.updated = false;
     }
-    
+
     // sort left to right
     this.particleGroups.sort((first, second) => {
       return first.particles[0].x - second.particles[0].x;
@@ -257,13 +252,15 @@ export class Camera {
 
     // draw
     let count = 0;
-    for (let i=0; i<this.particleGroups.length - 1; i++) {
-      for (const p1 of this.particleGroups[i].particles) {
-        for (const p2 of this.particleGroups[i+1].particles) {
-          const alpha = Math.min(p1.stableFrames, p2.stableFrames) / 100;
+
+    if (poses.length === 1) {
+      for (const p1 of this.particleGroups[0].particles) {
+        for (const p2 of this.particleGroups[0].particles) {
+          let alpha = Math.min(p1.stableFrames, p2.stableFrames) / 100;
+          alpha *= this.pseudoRand[count];
           if (alpha > 0) {
             count++;
-            const hue = i * 30 + count;
+            const hue = (count + Date.now() / 100) % 360;
             this.ctx.lineWidth = 4;
             this.ctx.strokeStyle = `hsla(${hue}, 100%, 50%, ${alpha})`;
             this.ctx.beginPath();
@@ -274,6 +271,44 @@ export class Camera {
         }
       }
     }
+    for (let i=0; i<this.particleGroups.length - 1; i++) {
+      for (const p1 of this.particleGroups[i].particles) {
+        for (const p2 of this.particleGroups[i+1].particles) {
+          let alpha = Math.min(p1.stableFrames, p2.stableFrames) / 100;
+          alpha *= this.pseudoRand[count];
+          if (alpha > 0) {
+            count++;
+            const hue = (i * 5 + count + Date.now() / 100) % 360;
+            this.ctx.lineWidth = 4;
+            this.ctx.strokeStyle = `hsla(${hue}, 100%, 50%, ${alpha})`;
+            this.ctx.beginPath();
+            this.ctx.moveTo(p1.x, p1.y);
+            this.ctx.lineTo(p2.x, p2.y);
+            this.ctx.stroke();
+          }
+        }
+      }
+    }
+  }
+
+  getPartsInUse() {
+    const partsInUse = [];
+    if (params.STATE.render.nose) partsInUse.push('nose');
+    if (params.STATE.render.left_ear) partsInUse.push('left_ear');
+    if (params.STATE.render.right_ear) partsInUse.push('right_ear');
+    if (params.STATE.render.left_shoulder) partsInUse.push('left_shoulder');
+    if (params.STATE.render.right_shoulder) partsInUse.push('right_shoulder');
+    if (params.STATE.render.left_elbow) partsInUse.push('left_elbow');
+    if (params.STATE.render.right_elbow) partsInUse.push('right_elbow');
+    if (params.STATE.render.left_wrist) partsInUse.push('left_wrist');
+    if (params.STATE.render.right_wrist) partsInUse.push('right_wrist');
+    if (params.STATE.render.left_hip) partsInUse.push('left_hip');
+    if (params.STATE.render.right_hip) partsInUse.push('right_hip');
+    if (params.STATE.render.left_knee) partsInUse.push('left_knee');
+    if (params.STATE.render.right_knee) partsInUse.push('right_knee');
+    if (params.STATE.render.left_ankle) partsInUse.push('left_ankle');
+    if (params.STATE.render.right_ankle) partsInUse.push('right_ankle');
+    return partsInUse;
   }
 
   drawAll(poses, pairList, opaque) {
