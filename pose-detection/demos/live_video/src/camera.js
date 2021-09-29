@@ -76,7 +76,7 @@ export class Camera {
       this.particleGroups.push(group);
     }
 
-    this.pseudoRand = Array.from({length: 100}, () => Math.random());
+    this.pseudoRand = Array.from({length: 100}, () => (Math.random() * 0.75) + 0.25);
     
     // this.setupAllPairs();
     
