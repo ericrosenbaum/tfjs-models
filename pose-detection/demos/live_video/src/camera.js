@@ -66,6 +66,9 @@ export class Camera {
     this.scatterGLHasInitialized = false;
 
     this.pseudoRand = Array.from({length: 2000}, () => (Math.random()));
+
+    this.poseidTimes = [];
+    this.partDuration = 2000;
     
     window.document.onkeydown = (e) => {
       if (e.key === 'f') {
@@ -156,6 +159,13 @@ export class Camera {
    * @param poses A list of poses to render.
    */
   drawResults(poses) {
+    // update pose id times
+    for (const pose of poses) {
+      if (!this.poseidTimes[pose.id]) {
+        this.poseidTimes[pose.id] = Date.now();
+      }
+    }
+
     const partsInUse = this.getPartsInUse();
     for (const pose of poses) {
       pose.keypointsInUse = pose.keypoints.filter((p) => partsInUse.includes(p.name));
@@ -168,16 +178,19 @@ export class Camera {
 
     // draw
     let count = 0;
-    // const totalLines = partsInUse.length * partsInUse.length * poses.length;
-
     for (let i=0; i<poses.length - 1; i++) {
-      for (const p1 of poses[i].keypointsInUse) {
-        for (const p2 of poses[i+1].keypointsInUse) {
-          const alpha = 0.25 + this.pseudoRand[count] / 10;
+      for (let j=0; j < poses[i].keypointsInUse.length; j++) {
+        for (let k=0; k < poses[i+1].keypointsInUse.length; k++) {
+          if (!this.isPointVisible(poses[i], j) || !this.isPointVisible(poses[i+1], k)) continue;
           count++;
+          const p1Alpha = this.pointAlpha(poses[i], j);
+          const p2Alpha = this.pointAlpha(poses[i+1], k);
+          const p1 = poses[i].keypointsInUse[j];
+          const p2 = poses[i+1].keypointsInUse[k];
+          const alpha = Math.min(p1Alpha, p2Alpha) * (0.25 + this.pseudoRand[count] / 10);
+          this.ctx.lineWidth = 4;
           const cycle = Math.round(Math.abs(Math.sin(count) * 20));
           const hue = (count + cycle + (Date.now() / 100)) % 360;
-          this.ctx.lineWidth = 4;
           this.ctx.strokeStyle = `hsla(${hue}, 100%, 50%, ${alpha})`;
           this.ctx.beginPath();
           this.ctx.moveTo(p1.x, p1.y);
@@ -188,6 +201,22 @@ export class Camera {
     }
   }
 
+  isPointVisible(pose, i) {
+    const t = this.poseidTimes[pose.id];
+    const diff = Date.now() - t;
+    return (diff > i * this.partDuration);
+  }
+
+  pointAlpha(pose, i) {
+    const t = this.poseidTimes[pose.id];
+    const diff = Date.now() - t;
+    const partStart = i * this.partDuration;
+    const dur = diff - partStart;
+    let frac = dur / this.partDuration;
+    if (frac > 1) frac = 1;
+    return frac;
+  }
+
   drawTitle() {
     this.ctx.save();
     this.ctx.translate(this.ctx.canvas.width, 0);
@@ -196,10 +225,10 @@ export class Camera {
     let f = 32;
     let h = f;
     let x = 10;
-    this.ctx.font = `${f}px sans`;
+    this.ctx.font = `${f}px sans-serif`;
     this.ctx.fillText('TOGETHER APART', x, h);
     f = 20;
-    this.ctx.font = `${f}px sans`;
+    this.ctx.font = `${f}px sans-serif`;
     this.ctx.fillText('Catherine Siller', x, h + f);
     this.ctx.fillText('Eric Rosenbaum', x, h + f + f);
     this.ctx.restore();
