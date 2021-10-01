@@ -173,6 +173,8 @@ async function renderResult() {
   if (poses && poses.length > 0 && !STATE.isModelChanged) {
     camera.drawResults(poses);
   }
+
+  camera.drawTitle();
 }
 
 async function renderPrediction() {

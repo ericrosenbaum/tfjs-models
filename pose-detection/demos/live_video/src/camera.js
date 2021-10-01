@@ -65,65 +65,14 @@ export class Camera {
     });
     this.scatterGLHasInitialized = false;
 
-    this.maxPoses = 6;
-    this.particleGroups = [];
-    for (let i=0; i<this.maxPoses; i++) {
-      const group = {
-        id: null,
-        updated: false,
-        particles: Array.from({length: 14}, () => new Particle()),
-      };
-      this.particleGroups.push(group);
-    }
-
-    this.pseudoRand = Array.from({length: 100}, () => (Math.random() * 0.9) + 0.1);
+    this.pseudoRand = Array.from({length: 2000}, () => (Math.random()));
     
-    // this.setupAllPairs();
-    
-    // window.setInterval(() => {
-    //   this.setupAllPairs();
-    // }, 10 * 1000);
-
     window.document.onkeydown = (e) => {
       if (e.key === 'f') {
         this.canvas.requestFullscreen();
         document.body.style.cursor = 'none';
       }
-      // if (e.key === ' ') {
-      //   this.setupAllPairs();
-      // }
     };
-  }
-
-  setupAllPairs() {
-    this.numOpaque = params.STATE.render.numOpaque;
-    this.numTranslucent = params.STATE.render.numTranslucent;
-    const numParts = this.partsInUse.length;
-    const allPairs = [];
-    for (let i=0; i<numParts; i++) {
-      for (let j=0; j<numParts; j++) {
-        allPairs.push([i, j]);
-      }
-    }
-    this.allPairs = this.shuffle(allPairs);
-    this.opaquePairs = this.allPairs.slice(0, this.numOpaque);
-    this.translucentPairs = this.allPairs.slice(this.numOpaque, this.numOpaque + this.numTranslucent);
-    console.log(this.opaquePairs);
-  }
-
-  shuffle(array) {
-    let currentIndex = array.length;
-    let randomIndex;
-    // While there remain elements to shuffle...
-    while (currentIndex != 0) {
-      // Pick a remaining element...
-      randomIndex = Math.floor(Math.random() * currentIndex);
-      currentIndex--;
-      // And swap it with the current element.
-      [array[currentIndex], array[randomIndex]] = [
-        array[randomIndex], array[currentIndex]];
-    }
-    return array;
   }
 
   /**
@@ -202,100 +151,41 @@ export class Camera {
     this.ctx.clearRect(0, 0, this.video.videoWidth, this.video.videoHeight);
   }
 
-  updateGroup(group, pose) {
-      for (let i=0; i < pose.keypointsInUse.length; i++) {
-        group.particles[i].update(pose.keypointsInUse[i]);
-    }
-    group.updated = true;
-  }
-
   /**
    * Draw the keypoints and skeleton on the video.
    * @param poses A list of poses to render.
    */
   drawResults(poses) {
     const partsInUse = this.getPartsInUse();
-    // update particle groups for existing ids, and set id for new groups if needed
     for (const pose of poses) {
       pose.keypointsInUse = pose.keypoints.filter((p) => partsInUse.includes(p.name));
-      const matchingGroup = this.particleGroups.find((group) => group.id === pose.id);
-      if (matchingGroup) {
-        this.updateGroup(matchingGroup, pose);
-      } else {
-        const nullGroup = this.particleGroups.find((group) => group.id === null);
-        if (nullGroup) {
-          nullGroup.id = pose.id;
-          this.updateGroup(nullGroup, pose);
-        }
-      }
     }
-
-    // all particles in all groups do a postupdate
-    for (const group of this.particleGroups) {
-      for (const particle of group.particles) {
-        particle.postUpdate(group.updated);
-      }
-    }
-
-    // if a group has an id but has not been updated, clear its id
-    for (const group of this.particleGroups) {
-      if ((group.id !== null) && (group.updated === false)) {
-        group.id = null;
-      }
-      group.updated = false;
-    }
-
-    // make a filtered list of particle groups that have ids set
-    this.particleGroupsToDraw = this.particleGroups.filter(
-      (group) => group.id !== null
-    );
 
     // sort left to right
-    this.particleGroupsToDraw.sort((first, second) => {
-      return first.particles[0].x - second.particles[0].x;
+    poses.sort((first, second) => {
+      return first.keypoints[0].x - second.keypoints[0].x;
     });
 
     // draw
     let count = 0;
+    // const totalLines = partsInUse.length * partsInUse.length * poses.length;
 
-    if (this.particleGroupsToDraw.length === 1) {
-      for (const p1 of this.particleGroupsToDraw[0].particles) {
-        for (const p2 of this.particleGroupsToDraw[0].particles) {
-          let alpha = Math.min(p1.stableFrames, p2.stableFrames) / 100;
-          alpha *= this.pseudoRand[count];
-          if (alpha > 0) {
-            count++;
-            const hue = (count + Date.now() / 100) % 360;
-            this.ctx.lineWidth = 4;
-            this.ctx.strokeStyle = `hsla(${hue}, 100%, 50%, ${alpha})`;
-            this.ctx.beginPath();
-            this.ctx.moveTo(p1.x, p1.y);
-            this.ctx.lineTo(p2.x, p2.y);
-            this.ctx.stroke();
-          }
+    for (let i=0; i<poses.length - 1; i++) {
+      for (const p1 of poses[i].keypointsInUse) {
+        for (const p2 of poses[i+1].keypointsInUse) {
+          const alpha = 0.25 + this.pseudoRand[count] / 10;
+          count++;
+          const cycle = Math.round(Math.abs(Math.sin(count) * 20));
+          const hue = (count + cycle + (Date.now() / 100)) % 360;
+          this.ctx.lineWidth = 4;
+          this.ctx.strokeStyle = `hsla(${hue}, 100%, 50%, ${alpha})`;
+          this.ctx.beginPath();
+          this.ctx.moveTo(p1.x, p1.y);
+          this.ctx.lineTo(p2.x, p2.y);
+          this.ctx.stroke();
         }
       }
     }
-    for (let i=0; i<this.particleGroupsToDraw.length - 1; i++) {
-      for (const p1 of this.particleGroupsToDraw[i].particles) {
-        for (const p2 of this.particleGroupsToDraw[i+1].particles) {
-          let alpha = Math.min(p1.stableFrames, p2.stableFrames) / 100;
-          alpha *= this.pseudoRand[count];
-          if (alpha > 0) {
-            count++;
-            const hue = (i * 5 + count + Date.now() / 100) % 360;
-            this.ctx.lineWidth = 4;
-            this.ctx.strokeStyle = `hsla(${hue}, 100%, 50%, ${alpha})`;
-            this.ctx.beginPath();
-            this.ctx.moveTo(p1.x, p1.y);
-            this.ctx.lineTo(p2.x, p2.y);
-            this.ctx.stroke();
-          }
-        }
-      }
-    }
-
-    this.drawTitle();
   }
 
   drawTitle() {
