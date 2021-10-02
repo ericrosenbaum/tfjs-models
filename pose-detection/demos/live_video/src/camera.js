@@ -159,6 +159,8 @@ export class Camera {
    * @param poses A list of poses to render.
    */
   drawResults(poses) {
+    this.partDuration = params.STATE.render.fadeTime;
+
     // update pose id times
     for (const pose of poses) {
       if (!this.poseidTimes[pose.id]) {
@@ -177,8 +179,8 @@ export class Camera {
     });
 
     // draw
-    let count = 0;
     for (let i=0; i<poses.length - 1; i++) {
+      let count = 0;
       for (let j=0; j < poses[i].keypointsInUse.length; j++) {
         for (let k=0; k < poses[i+1].keypointsInUse.length; k++) {
           count += 0.5;
@@ -187,10 +189,12 @@ export class Camera {
           const p2Alpha = this.pointAlpha(poses[i+1], k);
           const p1 = poses[i].keypointsInUse[j];
           const p2 = poses[i+1].keypointsInUse[k];
-          const alpha = Math.min(p1Alpha, p2Alpha) * (0.25 + this.pseudoRand[Math.floor(count)] / 10);
+          const alphaOffset = params.STATE.render.alphaMin + this.pseudoRand[Math.floor(count)] *
+            (params.STATE.render.alphaMax - params.STATE.render.alphaMin);
+          const alpha = Math.min(p1Alpha, p2Alpha) * alphaOffset;
           this.ctx.lineWidth = 4;
-          const cycle = Math.round(Math.abs(Math.sin(count) * 20));
-          const hue = (count + cycle + (Date.now() / 100)) % 360;
+          const cycle = Math.round(Math.abs(Math.sin(count) * 30));
+          const hue = ((poses[i].id*30) + count + cycle + (Date.now() / 100)) % 360;
           this.ctx.strokeStyle = `hsla(${hue}, 100%, 50%, ${alpha})`;
           this.ctx.beginPath();
           this.ctx.moveTo(p1.x, p1.y);

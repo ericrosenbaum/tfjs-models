@@ -31,6 +31,9 @@ export const STATE = {
   flags: {},
   modelConfig: {},
   render: {
+    fadeTime: 2000,
+    alphaMin: 0.25,
+    alphaMax: 0.35,
     nose: false,
     left_ear: false,
     right_ear: false,
