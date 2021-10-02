@@ -181,13 +181,13 @@ export class Camera {
     for (let i=0; i<poses.length - 1; i++) {
       for (let j=0; j < poses[i].keypointsInUse.length; j++) {
         for (let k=0; k < poses[i+1].keypointsInUse.length; k++) {
+          count += 0.5;
           if (!this.isPointVisible(poses[i], j) || !this.isPointVisible(poses[i+1], k)) continue;
-          count++;
           const p1Alpha = this.pointAlpha(poses[i], j);
           const p2Alpha = this.pointAlpha(poses[i+1], k);
           const p1 = poses[i].keypointsInUse[j];
           const p2 = poses[i+1].keypointsInUse[k];
-          const alpha = Math.min(p1Alpha, p2Alpha) * (0.25 + this.pseudoRand[count] / 10);
+          const alpha = Math.min(p1Alpha, p2Alpha) * (0.25 + this.pseudoRand[Math.floor(count)] / 10);
           this.ctx.lineWidth = 4;
           const cycle = Math.round(Math.abs(Math.sin(count) * 20));
           const hue = (count + cycle + (Date.now() / 100)) % 360;
@@ -214,6 +214,8 @@ export class Camera {
     const dur = diff - partStart;
     let frac = dur / this.partDuration;
     if (frac > 1) frac = 1;
+    if (frac < 0) frac = 0;
+    if (isNaN(frac)) frac = 0;
     return frac;
   }
 
